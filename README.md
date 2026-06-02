@@ -11,3 +11,58 @@ if(!requireNamespace("devtools", quietly = TRUE)) {
 
 devtools::install_github("dmitrikotov/SeuratOverlay")
 ```
+
+The main function within the SeuratOverlay package is FeaturePlotWithOverlays. This is a layer that runs on top of the Seurat FeaturePlot function allowing simultaneous plotting of gene expression data and cluster metadata.
+
+```R
+\usage{
+FeaturePlotWithOverlays(
+  seurat_obj,
+  gene_to_plot,
+  reduction_name = "umap",
+  group_column = "seurat_clusters",
+  idents_to_plot = NULL,
+  group.by = NULL,
+  split.by = NULL,
+  repel_labels = FALSE,
+  show_label_lines = FALSE,
+  label_size = 4,
+  line_width = 0.6,
+  line_type = "dashed",
+  min_cells = 50,
+  k_neighbors = 10,
+  neighbor_homogeneity = 0.85
+)
+}
+\arguments{
+\item{seurat_obj}{A Seurat object.}
+
+\item{gene_to_plot}{Character. Gene/feature to visualize.}
+
+\item{reduction_name}{Character. Dimensional reduction to use (e.g., "umap", "tsne"). Default is "umap".}
+
+\item{group_column}{Character. Metadata column containing cluster labels. Default is "seurat_clusters".}
+
+\item{idents_to_plot}{Character vector. Specific identities within the group_column to outline and label. If NULL, all are plotted. Default is NULL.}
+
+\item{group.by}{Character. Metadata column to group cells by in FeaturePlot. Default is NULL.}
+
+\item{split.by}{Character. Metadata column to split the plot by in FeaturePlot. Default is NULL.}
+
+\item{repel_labels}{Logical. Whether to repel labels away from centroids. Default is FALSE.}
+
+\item{show_label_lines}{Logical. Whether to draw connector lines from repelled labels. Default is FALSE.}
+
+\item{label_size}{Numeric. Font size for the cluster labels. Default is 4.}
+
+\item{line_width}{Numeric. Stroke thickness of the boundaries. Default is 0.6.}
+
+\item{line_type}{Character. Line type for boundaries (e.g., "dashed", "dotted", "solid"). Default is "dashed".}
+
+\item{min_cells}{Numeric. Minimum cell count required to outline/label a cluster. Default is 50.}
+
+\item{k_neighbors}{Numeric. Number of nearest neighbors to evaluate for border pruning. Default is 10.}
+
+\item{neighbor_homogeneity}{Numeric. Value between 0-1. Required local purity to keep a cell for boundary drawing. Default is 0.85.}
+}
+```
