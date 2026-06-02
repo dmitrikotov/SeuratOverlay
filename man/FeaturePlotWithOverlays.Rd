@@ -9,12 +9,15 @@ FeaturePlotWithOverlays(
   gene_to_plot,
   reduction_name = "umap",
   group_column = "seurat_clusters",
-  repel_labels = TRUE,
-  show_label_lines = TRUE,
+  idents_to_plot = NULL,
+  group.by = NULL,
+  split.by = NULL,
+  repel_labels = FALSE,
+  show_label_lines = FALSE,
   label_size = 4,
   line_width = 0.6,
   line_type = "dashed",
-  min_cells = 100,
+  min_cells = 50,
   k_neighbors = 10,
   neighbor_homogeneity = 0.85
 )
@@ -28,9 +31,15 @@ FeaturePlotWithOverlays(
 
 \item{group_column}{Character. Metadata column containing cluster labels. Default is "seurat_clusters".}
 
-\item{repel_labels}{Logical. Whether to repel labels away from centroids. Default is TRUE.}
+\item{idents_to_plot}{Character vector. Specific identities within the group_column to outline and label. If NULL, all are plotted. Default is NULL.}
 
-\item{show_label_lines}{Logical. Whether to draw connector lines from repelled labels. Default is TRUE.}
+\item{group.by}{Character. Metadata column to group cells by in FeaturePlot. Default is NULL.}
+
+\item{split.by}{Character. Metadata column to split the plot by in FeaturePlot. Default is NULL.}
+
+\item{repel_labels}{Logical. Whether to repel labels away from centroids. Default is FALSE.}
+
+\item{show_label_lines}{Logical. Whether to draw connector lines from repelled labels. Default is FALSE.}
 
 \item{label_size}{Numeric. Font size for the cluster labels. Default is 4.}
 
@@ -38,7 +47,7 @@ FeaturePlotWithOverlays(
 
 \item{line_type}{Character. Line type for boundaries (e.g., "dashed", "dotted", "solid"). Default is "dashed".}
 
-\item{min_cells}{Numeric. Minimum cell count required to outline/label a cluster. Default is 100.}
+\item{min_cells}{Numeric. Minimum cell count required to outline/label a cluster. Default is 50.}
 
 \item{k_neighbors}{Numeric. Number of nearest neighbors to evaluate for border pruning. Default is 10.}
 

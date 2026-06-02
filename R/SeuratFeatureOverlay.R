@@ -9,19 +9,22 @@
 #' @param gene_to_plot Character. Gene/feature to visualize.
 #' @param reduction_name Character. Dimensional reduction to use (e.g., "umap", "tsne"). Default is "umap".
 #' @param group_column Character. Metadata column containing cluster labels. Default is "seurat_clusters".
-#' @param repel_labels Logical. Whether to repel labels away from centroids. Default is TRUE.
-#' @param show_label_lines Logical. Whether to draw connector lines from repelled labels. Default is TRUE.
+#' @param idents_to_plot Character vector. Specific identities within the group_column to outline and label. If NULL, all are plotted. Default is NULL.
+#' @param group.by Character. Metadata column to group cells by in FeaturePlot. Default is NULL.
+#' @param split.by Character. Metadata column to split the plot by in FeaturePlot. Default is NULL.
+#' @param repel_labels Logical. Whether to repel labels away from centroids. Default is FALSE.
+#' @param show_label_lines Logical. Whether to draw connector lines from repelled labels. Default is FALSE.
 #' @param label_size Numeric. Font size for the cluster labels. Default is 4.
 #' @param line_width Numeric. Stroke thickness of the boundaries. Default is 0.6.
 #' @param line_type Character. Line type for boundaries (e.g., "dashed", "dotted", "solid"). Default is "dashed".
-#' @param min_cells Numeric. Minimum cell count required to outline/label a cluster. Default is 100.
+#' @param min_cells Numeric. Minimum cell count required to outline/label a cluster. Default is 50.
 #' @param k_neighbors Numeric. Number of nearest neighbors to evaluate for border pruning. Default is 10.
 #' @param neighbor_homogeneity Numeric. Value between 0-1. Required local purity to keep a cell for boundary drawing. Default is 0.85.
 #'
 #' @importFrom Seurat Embeddings FeaturePlot
 #' @importFrom RANN nn2
 #' @importFrom ggrepel geom_label_repel
-#' @importFrom ggplot2 geom_label geom_polygon theme_minimal labs aes arrow unit
+#' @importFrom ggplot2 geom_label geom_polygon theme_minimal labs aes unit
 #' @importFrom dplyr %>% count filter group_by mutate slice summarize ungroup
 #'
 #' @return A ggplot object containing the styled FeaturePlot with overlays.
@@ -43,12 +46,15 @@ FeaturePlotWithOverlays <- function(seurat_obj,
                                     gene_to_plot,
                                     reduction_name = "umap",
                                     group_column = "seurat_clusters",
-                                    repel_labels = TRUE,
-                                    show_label_lines = TRUE,
+                                    idents_to_plot = NULL,
+                                    group.by = NULL,
+                                    split.by = NULL,
+                                    repel_labels = FALSE,
+                                    show_label_lines = FALSE,
                                     label_size = 4,
                                     line_width = 0.6,
                                     line_type = "dashed",
-                                    min_cells = 100,
+                                    min_cells = 50,
                                     k_neighbors = 10,
                                     neighbor_homogeneity = 0.85) {
 
@@ -65,7 +71,29 @@ FeaturePlotWithOverlays <- function(seurat_obj,
   }
   embed_coords$Cluster <- seurat_obj[[group_column]][, 1]
 
-  # --- Step 2: Filter out Small Clusters ---
+  # --- Step 2: Validate split.by and group.by if provided ---
+  if (!is.null(split.by)) {
+    if (!split.by %in% colnames(seurat_obj@meta.data)) {
+      stop(paste("split.by column", split.by, "not found in Seurat object metadata."))
+    }
+  }
+  if (!is.null(group.by)) {
+    if (!group.by %in% colnames(seurat_obj@meta.data)) {
+      stop(paste("group.by column", group.by, "not found in Seurat object metadata."))
+    }
+  }
+
+  # --- Step 3: Filter for Specific Idents if requested ---
+  if (!is.null(idents_to_plot)) {
+    invalid_idents <- setdiff(idents_to_plot, unique(embed_coords$Cluster))
+    if (length(invalid_idents) > 0) {
+      warning(paste("The following idents were not found in the metadata and will be ignored:",
+                    paste(invalid_idents, collapse = ", ")))
+    }
+    embed_coords <- embed_coords %>% dplyr::filter(Cluster %in% idents_to_plot)
+  }
+
+  # --- Step 4: Filter out Small Clusters ---
   cluster_counts <- embed_coords %>%
     dplyr::count(Cluster) %>%
     dplyr::filter(n >= min_cells)
@@ -77,7 +105,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
   embed_coords <- embed_coords %>%
     dplyr::filter(Cluster %in% cluster_counts$Cluster)
 
-  # --- Step 3: Fast KNN Neighborhood Homogeneity Filter ---
+  # --- Step 5: Fast KNN Neighborhood Homogeneity Filter ---
   if (nrow(embed_coords) > k_neighbors) {
     nn_results <- RANN::nn2(
       data = embed_coords[, c("Dim_1", "Dim_2")],
@@ -102,7 +130,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
     embed_coords_clean <- embed_coords
   }
 
-  # --- Step 4: Compute Centroids for Labels ---
+  # --- Step 6: Compute Centroids for Labels ---
   centroids <- embed_coords %>%
     dplyr::group_by(Cluster) %>%
     dplyr::summarize(
@@ -111,7 +139,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
     ) %>%
     dplyr::ungroup()
 
-  # --- Step 5: Compute Convex Hulls for Boundary Outlines ---
+  # --- Step 7: Compute Convex Hulls for Boundary Outlines ---
   hull_data <- embed_coords_clean %>%
     dplyr::group_by(Cluster) %>%
     dplyr::mutate(
@@ -119,18 +147,20 @@ FeaturePlotWithOverlays <- function(seurat_obj,
       Centroid_2 = mean(Dim_2),
       Distance = sqrt((Dim_1 - Centroid_1)^2 + (Dim_2 - Centroid_2)^2)
     ) %>%
-    dplyr::filter(Distance <= stats::quantile(Distance, 0.90)) %>% # Core 90%
+    dplyr::filter(Distance <= stats::quantile(Distance, 0.95)) %>% # Core 95%
     dplyr::slice(grDevices::chull(Dim_1, Dim_2)) %>%
     dplyr::ungroup()
 
-  # --- Step 6: Generate Base FeaturePlot ---
+  # --- Step 8: Generate Base FeaturePlot ---
   base_plot <- Seurat::FeaturePlot(
     object = seurat_obj,
     features = gene_to_plot,
-    reduction = reduction_name
+    reduction = reduction_name,
+    split.by = split.by,
+    group.by = group.by
   )
 
-  # --- Step 7: Configure Label Layer ---
+  # --- Step 9: Configure Label Layer ---
   if (repel_labels) {
     label_layer <- ggrepel::geom_label_repel(
       data = centroids,
@@ -147,7 +177,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
       segment.color = if (show_label_lines) "grey30" else NA,
       segment.size = 0.5,
       min.segment.length = 0,
-      arrow = if (show_label_lines) ggplot2::arrow(length = ggplot2::unit(0.02, "npc"), type = "closed") else NULL,
+      arrow = NULL, # Removed arrow segment as requested
       inherit.aes = FALSE
     )
   } else {
@@ -164,7 +194,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
     )
   }
 
-  # --- Step 8: Assemble and Return Final Plot ---
+  # --- Step 10: Assemble and Return Final Plot ---
   final_plot <- base_plot +
     ggplot2::geom_polygon(
       data = hull_data,
@@ -180,6 +210,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
     ggplot2::theme_minimal() +
     ggplot2::labs(
       title = paste("Expression of", gene_to_plot),
+      subtitle = paste0("Outlines show complete core areas (K=", k_neighbors, ", min homogeneity=", neighbor_homogeneity*100, "%)")
     )
 
   return(final_plot)
