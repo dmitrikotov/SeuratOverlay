@@ -25,7 +25,7 @@ FeaturePlotWithOverlays(
 \arguments{
 \item{seurat_obj}{A Seurat object.}
 
-\item{gene_to_plot}{Character. Gene/feature to visualize.}
+\item{gene_to_plot}{Character vector. Gene(s)/feature(s) to visualize.}
 
 \item{reduction_name}{Character. Dimensional reduction to use (e.g., "umap", "tsne"). Default is "umap".}
 
@@ -68,7 +68,7 @@ library(Seurat)
 data("pbmc_small")
 FeaturePlotWithOverlays(
   seurat_obj = pbmc_small,
-  gene_to_plot = "CD8A",
+  gene_to_plot = c("CD8A", "GZMB"),
   reduction_name = "tsne",
   group_column = "groups",
   min_cells = 30

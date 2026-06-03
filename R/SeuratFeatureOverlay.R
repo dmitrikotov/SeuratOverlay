@@ -6,7 +6,7 @@
 #' overlapping boundary lines.
 #'
 #' @param seurat_obj A Seurat object.
-#' @param gene_to_plot Character. Gene/feature to visualize.
+#' @param gene_to_plot Character vector. Gene(s)/feature(s) to visualize.
 #' @param reduction_name Character. Dimensional reduction to use (e.g., "umap", "tsne"). Default is "umap".
 #' @param group_column Character. Metadata column containing cluster labels. Default is "seurat_clusters".
 #' @param idents_to_plot Character vector. Specific identities within the group_column to outline and label. If NULL, all are plotted. Default is NULL.
@@ -24,8 +24,9 @@
 #' @importFrom Seurat Embeddings FeaturePlot
 #' @importFrom RANN nn2
 #' @importFrom ggrepel geom_label_repel
-#' @importFrom ggplot2 geom_label geom_polygon theme_minimal labs aes unit
+#' @importFrom ggplot2 geom_label geom_polygon theme_minimal labs aes unit theme guides guide_colorbar
 #' @importFrom dplyr %>% count filter group_by mutate slice summarize ungroup
+#' @importFrom patchwork plot_layout plot_annotation wrap_plots
 #'
 #' @return A ggplot object containing the styled FeaturePlot with overlays.
 #' @export
@@ -36,7 +37,7 @@
 #' data("pbmc_small")
 #' FeaturePlotWithOverlays(
 #'   seurat_obj = pbmc_small,
-#'   gene_to_plot = "CD8A",
+#'   gene_to_plot = c("CD8A", "GZMB"),
 #'   reduction_name = "tsne",
 #'   group_column = "groups",
 #'   min_cells = 30
@@ -167,12 +168,12 @@ FeaturePlotWithOverlays <- function(seurat_obj,
       alpha = 0.85,
       label.padding = ggplot2::unit(0.2, "lines"),
       box.padding = 1.2,
-      point.padding = 0, # Forces connector to attach directly to centroid
+      point.padding = 0,
       force = 10,
       segment.color = if (show_label_lines) "grey30" else NA,
       segment.size = 0.5,
       min.segment.length = 0,
-      arrow = NULL, # Removed arrow segment as requested
+      arrow = NULL,
       inherit.aes = FALSE
     )
   } else {
@@ -190,23 +191,88 @@ FeaturePlotWithOverlays <- function(seurat_obj,
   }
 
   # --- Step 10: Assemble and Return Final Plot ---
-  final_plot <- base_plot +
-    ggplot2::geom_polygon(
-      data = hull_data,
-      ggplot2::aes(x = Dim_1, y = Dim_2, group = Cluster),
-      color = "grey30",
-      fill = NA,
-      linetype = line_type,
-      linewidth = line_width,
-      alpha = 0.75,
-      inherit.aes = FALSE
-    ) +
-    label_layer +
-    ggplot2::theme_minimal() +
-    ggplot2::labs(
-      title = paste("Expression of", gene_to_plot),
-      subtitle = paste0("Outlines show complete core areas (K=", k_neighbors, ", min homogeneity=", neighbor_homogeneity*100, "%)")
-    )
+  polygon_layer <- ggplot2::geom_polygon(
+    data = hull_data,
+    ggplot2::aes(x = Dim_1, y = Dim_2, group = Cluster),
+    color = "grey30",
+    fill = NA,
+    linetype = line_type,
+    linewidth = line_width,
+    alpha = 0.75,
+    inherit.aes = FALSE
+  )
+
+  # Set up a target guide setup to kill titles using only the standardized 'color' aesthetic
+  clean_guides <- ggplot2::guides(
+    color = ggplot2::guide_colorbar(title = NULL)
+  )
+
+  is_multi_gene <- length(gene_to_plot) > 1
+  is_split <- !is.null(split.by)
+
+  # Apply overlays conditionally based on layout type
+  if (inherits(base_plot, "patchwork")) {
+    if (is_split) {
+      num_genes <- length(gene_to_plot)
+      num_subplots <- length(base_plot)
+      num_splits <- num_subplots / num_genes
+
+      gene_row_plots <- list()
+
+      for (g in seq_len(num_genes)) {
+        indices <- ((g - 1) * num_splits + 1):(g * num_splits)
+
+        # Apply overlays to the subplots of this specific gene
+        for (i in indices) {
+          base_plot[[i]] <- base_plot[[i]] +
+            polygon_layer +
+            label_layer +
+            ggplot2::theme_minimal() +
+            ggplot2::theme(legend.position = "right") +
+            clean_guides
+        }
+
+        # Extract the processed subplots for this gene
+        gene_plots_list <- lapply(indices, function(idx) base_plot[[idx]])
+
+        # Group panels for this gene, collect their guides into one row-specific legend,
+        # and safely append the row annotation title afterwards to avoid guide-class conflicts.
+        gene_row <- patchwork::wrap_plots(gene_plots_list, guides = "collect") &
+          ggplot2::theme(legend.position = "right") &
+          clean_guides
+
+        gene_row_plots[[g]] <- gene_row + patchwork::plot_annotation(title = gene_to_plot[g])
+      }
+
+      # Stack all clean rows vertically
+      final_plot <- patchwork::wrap_plots(gene_row_plots, ncol = 1)
+
+    } else {
+      # Multi-gene plot with NO split.by (regular panel grid)
+      for (i in seq_along(base_plot)) {
+        base_plot[[i]] <- base_plot[[i]] +
+          polygon_layer +
+          label_layer +
+          ggplot2::theme_minimal() +
+          ggplot2::theme(legend.position = "right") +
+          clean_guides
+      }
+
+      # Keep legends corresponding to each individual gene subplot
+      final_plot <- base_plot +
+        patchwork::plot_layout(guides = "keep") &
+        ggplot2::theme(legend.position = "right") &
+        clean_guides
+    }
+  } else {
+    # Standard single-panel ggplot (single gene, no split.by)
+    final_plot <- base_plot +
+      polygon_layer +
+      label_layer +
+      ggplot2::theme_minimal() +
+      clean_guides +
+      ggplot2::labs(title = gene_to_plot)
+  }
 
   return(final_plot)
 }
