@@ -22,8 +22,8 @@ FeaturePlotWithOverlays(
   reduction_name = "umap",
   group_column = "seurat_clusters",
   idents_to_plot = NULL,
-  group.by = NULL,
   split.by = NULL,
+  order = TRUE,
   repel_labels = FALSE,
   show_label_lines = FALSE,
   label_size = 4,
@@ -44,9 +44,9 @@ group_column: Metadata column containing cluster labels. Default is "seurat_clus
 
 idents_to_plot: Specific identities within the group_column to outline and label. If NULL, all are plotted. Default is NULL.
 
-group.by: Metadata column to group cells by in FeaturePlot. Default is NULL.
-
 split.by: Metadata column to split the plot by in FeaturePlot. Default is NULL.
+
+order: If TRUE, plot cells in order of expression level so that cells expressing the feature are plotted on top. Default is TRUE.
 
 repel_labels: Whether to repel labels away from centroids. Default is FALSE.
 
