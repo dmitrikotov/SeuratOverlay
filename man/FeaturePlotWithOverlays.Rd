@@ -10,8 +10,8 @@ FeaturePlotWithOverlays(
   reduction_name = "umap",
   group_column = "seurat_clusters",
   idents_to_plot = NULL,
-  group.by = NULL,
   split.by = NULL,
+  order = TRUE,
   repel_labels = FALSE,
   show_label_lines = FALSE,
   label_size = 4,
@@ -33,9 +33,9 @@ FeaturePlotWithOverlays(
 
 \item{idents_to_plot}{Character vector. Specific identities within the group_column to outline and label. If NULL, all are plotted. Default is NULL.}
 
-\item{group.by}{Character. Metadata column to group cells by in FeaturePlot. Default is NULL.}
-
 \item{split.by}{Character. Metadata column to split the plot by in FeaturePlot. Default is NULL.}
+
+\item{order}{Logical. If TRUE, plot cells in order of expression level so that cells expressing the feature are plotted on top. Default is TRUE.}
 
 \item{repel_labels}{Logical. Whether to repel labels away from centroids. Default is FALSE.}
 

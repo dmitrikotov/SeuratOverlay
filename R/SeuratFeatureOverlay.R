@@ -10,8 +10,8 @@
 #' @param reduction_name Character. Dimensional reduction to use (e.g., "umap", "tsne"). Default is "umap".
 #' @param group_column Character. Metadata column containing cluster labels. Default is "seurat_clusters".
 #' @param idents_to_plot Character vector. Specific identities within the group_column to outline and label. If NULL, all are plotted. Default is NULL.
-#' @param group.by Character. Metadata column to group cells by in FeaturePlot. Default is NULL.
 #' @param split.by Character. Metadata column to split the plot by in FeaturePlot. Default is NULL.
+#' @param order Logical. If TRUE, plot cells in order of expression level so that cells expressing the feature are plotted on top. Default is TRUE.
 #' @param repel_labels Logical. Whether to repel labels away from centroids. Default is FALSE.
 #' @param show_label_lines Logical. Whether to draw connector lines from repelled labels. Default is FALSE.
 #' @param label_size Numeric. Font size for the cluster labels. Default is 4.
@@ -47,8 +47,8 @@ FeaturePlotWithOverlays <- function(seurat_obj,
                                     reduction_name = "umap",
                                     group_column = "seurat_clusters",
                                     idents_to_plot = NULL,
-                                    group.by = NULL,
                                     split.by = NULL,
+                                    order = TRUE,
                                     repel_labels = FALSE,
                                     show_label_lines = FALSE,
                                     label_size = 4,
@@ -71,15 +71,10 @@ FeaturePlotWithOverlays <- function(seurat_obj,
   }
   embed_coords$Cluster <- seurat_obj[[group_column]][, 1]
 
-  # --- Step 2: Validate split.by and group.by if provided ---
+  # --- Step 2: Validate split.by if provided ---
   if (!is.null(split.by)) {
     if (!split.by %in% colnames(seurat_obj@meta.data)) {
       stop(paste("split.by column", split.by, "not found in Seurat object metadata."))
-    }
-  }
-  if (!is.null(group.by)) {
-    if (!group.by %in% colnames(seurat_obj@meta.data)) {
-      stop(paste("group.by column", group.by, "not found in Seurat object metadata."))
     }
   }
 
@@ -157,7 +152,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
     features = gene_to_plot,
     reduction = reduction_name,
     split.by = split.by,
-    group.by = group.by
+    order = order
   )
 
   # --- Step 9: Configure Label Layer ---
