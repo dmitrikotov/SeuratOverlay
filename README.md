@@ -40,7 +40,7 @@ gene_to_plot: Gene/feature to visualize.
 
 reduction_name: Dimensional reduction to use (e.g., "umap", "tsne"). Default is "umap".
 
-group_column: Metadata column containing cluster labels. Default is "seurat_clusters".
+group_column: Metadata column containing cluster labels. If NULL, overlays are skipped. Default is "seurat_clusters".
 
 idents_to_plot: Specific identities within the group_column to outline and label. If NULL, all are plotted. Default is NULL.
 
