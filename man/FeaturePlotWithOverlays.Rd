@@ -29,7 +29,7 @@ FeaturePlotWithOverlays(
 
 \item{reduction_name}{Character. Dimensional reduction to use (e.g., "umap", "tsne"). Default is "umap".}
 
-\item{group_column}{Character. Metadata column containing cluster labels. Default is "seurat_clusters".}
+\item{group_column}{Character. Metadata column containing cluster labels. If NULL, overlays are skipped. Default is "seurat_clusters".}
 
 \item{idents_to_plot}{Character vector. Specific identities within the group_column to outline and label. If NULL, all are plotted. Default is NULL.}
 
