@@ -162,6 +162,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
 
           if (v_len > 0) {
             u_x <- v_x / v_len
+            u_y / v_len
             u_y <- v_y / v_len
           } else {
             u_x <- 0
@@ -251,16 +252,18 @@ FeaturePlotWithOverlays <- function(seurat_obj,
     color = ggplot2::guide_colorbar(title = NULL)
   )
 
-  # Theme modification for stripping grid lines, setting line widths, and using Helvetica
+  # Theme modification for stripping grid lines, setting line widths, and using Helvetica with ticks
   theme_clean_axes <- ggplot2::theme(
-    text             = ggplot2::element_text(family = "Helvetica"),
-    axis.text        = ggplot2::element_text(size = 12, color = "black", family = "Helvetica"),
-    axis.title       = ggplot2::element_text(family = "Helvetica"),
-    plot.title       = ggplot2::element_text(family = "Helvetica"),
-    legend.text      = ggplot2::element_text(family = "Helvetica"),
-    panel.grid.major = ggplot2::element_blank(),
-    panel.grid.minor = ggplot2::element_blank(),
-    axis.line        = ggplot2::element_line(color = "black", linewidth = 0.5)
+    text              = ggplot2::element_text(family = "Helvetica"),
+    axis.text         = ggplot2::element_text(size = 12, color = "black", family = "Helvetica"),
+    axis.title        = ggplot2::element_text(family = "Helvetica"),
+    plot.title        = ggplot2::element_text(family = "Helvetica"),
+    legend.text       = ggplot2::element_text(family = "Helvetica"),
+    panel.grid.major  = ggplot2::element_blank(),
+    panel.grid.minor  = ggplot2::element_blank(),
+    axis.line         = ggplot2::element_line(color = "black", linewidth = 0.5),
+    axis.ticks        = ggplot2::element_line(color = "black", linewidth = 0.5),
+    axis.ticks.length = ggplot2::unit(0.15, "cm")
   )
 
   # --- Step 10: Assemble and Return Final Plot ---
