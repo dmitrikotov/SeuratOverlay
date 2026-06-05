@@ -24,7 +24,7 @@
 #' @importFrom Seurat Embeddings FeaturePlot
 #' @importFrom RANN nn2
 #' @importFrom ggrepel geom_label_repel
-#' @importFrom ggplot2 geom_label geom_polygon theme_minimal labs aes unit theme guides guide_colorbar
+#' @importFrom ggplot2 geom_label geom_polygon theme_minimal labs aes unit theme guides guide_colorbar element_blank element_line element_text
 #' @importFrom dplyr %>% count filter group_by mutate slice summarize ungroup group_modify
 #' @importFrom patchwork plot_layout plot_annotation wrap_plots
 #'
@@ -147,18 +147,15 @@ FeaturePlotWithOverlays <- function(seurat_obj,
       dplyr::ungroup()
 
     # --- Step 6: Compute Centroids and Target Anchors for Labels ---
-    # We calculate the global center of coordinates to determine outward projection direction.
     global_center <- c(mean(embed_coords$Dim_1), mean(embed_coords$Dim_2))
 
     centroids <- hull_data %>%
       dplyr::group_by(Cluster) %>%
       dplyr::group_modify(~ {
-        # Raw cluster centroid
         c_x <- mean(.x$Dim_1)
         c_y <- mean(.x$Dim_2)
 
         if (repel_labels) {
-          # Calculate outward vector from global coordinate center
           v_x <- c_x - global_center[1]
           v_y <- c_y - global_center[2]
           v_len <- sqrt(v_x^2 + v_y^2)
@@ -171,22 +168,18 @@ FeaturePlotWithOverlays <- function(seurat_obj,
             u_y <- 1
           }
 
-          # Project a point outward from centroid along the unit vector
           max_rad <- max(sqrt((.x$Dim_1 - c_x)^2 + (.x$Dim_2 - c_y)^2))
           est_label_x <- c_x + (max_rad * 1.5) * u_x
           est_label_y <- c_y + (max_rad * 1.5) * u_y
 
-          # Identify the point on the convex hull closest to this outward projected target
           dists <- sqrt((.x$Dim_1 - est_label_x)^2 + (.x$Dim_2 - est_label_y)^2)
           best_idx <- which.min(dists)
 
-          # Use the closest hull boundary point as the anchor coordinate for repelled connector lines
           data.frame(
             Dim_1 = .x$Dim_1[best_idx],
             Dim_2 = .x$Dim_2[best_idx]
           )
         } else {
-          # Keep coordinate centered exactly at raw centroid for non-repelled labels
           data.frame(
             Dim_1 = c_x,
             Dim_2 = c_y
@@ -203,11 +196,12 @@ FeaturePlotWithOverlays <- function(seurat_obj,
         fill = "white",
         color = "black",
         fontface = "bold",
+        family = "Helvetica",
         size = label_size,
         alpha = 0.85,
         label.padding = ggplot2::unit(0.2, "lines"),
         box.padding = 1.2,
-        point.padding = 0, # Forces connector to attach directly to boundary anchor
+        point.padding = 0,
         force = 10,
         segment.color = if (show_label_lines) "grey30" else NA,
         segment.size = 0.5,
@@ -222,6 +216,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
         fill = "white",
         color = "black",
         fontface = "bold",
+        family = "Helvetica",
         size = label_size,
         alpha = 0.85,
         label.padding = ggplot2::unit(0.2, "lines"),
@@ -256,6 +251,18 @@ FeaturePlotWithOverlays <- function(seurat_obj,
     color = ggplot2::guide_colorbar(title = NULL)
   )
 
+  # Theme modification for stripping grid lines, setting line widths, and using Helvetica
+  theme_clean_axes <- ggplot2::theme(
+    text             = ggplot2::element_text(family = "Helvetica"),
+    axis.text        = ggplot2::element_text(size = 12, color = "black", family = "Helvetica"),
+    axis.title       = ggplot2::element_text(family = "Helvetica"),
+    plot.title       = ggplot2::element_text(family = "Helvetica"),
+    legend.text      = ggplot2::element_text(family = "Helvetica"),
+    panel.grid.major = ggplot2::element_blank(),
+    panel.grid.minor = ggplot2::element_blank(),
+    axis.line        = ggplot2::element_line(color = "black", linewidth = 0.5)
+  )
+
   # --- Step 10: Assemble and Return Final Plot ---
   # Apply overlays conditionally based on layout type (NULL layers are safely ignored by ggplot2)
   if (inherits(base_plot, "patchwork")) {
@@ -275,6 +282,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
             polygon_layer +
             label_layer +
             ggplot2::theme_minimal() +
+            theme_clean_axes +
             ggplot2::theme(legend.position = "right") +
             clean_guides
         }
@@ -285,6 +293,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
         # Group panels, collect guides, and safely append annotation titles
         gene_row <- patchwork::wrap_plots(gene_plots_list, guides = "collect") &
           ggplot2::theme(legend.position = "right") &
+          theme_clean_axes &
           clean_guides
 
         gene_row_plots[[g]] <- gene_row + patchwork::plot_annotation(title = gene_to_plot[g])
@@ -300,6 +309,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
           polygon_layer +
           label_layer +
           ggplot2::theme_minimal() +
+          theme_clean_axes +
           ggplot2::theme(legend.position = "right") +
           clean_guides
       }
@@ -308,6 +318,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
       final_plot <- base_plot +
         patchwork::plot_layout(guides = "keep") &
         ggplot2::theme(legend.position = "right") &
+        theme_clean_axes &
         clean_guides
     }
   } else {
@@ -316,6 +327,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
       polygon_layer +
       label_layer +
       ggplot2::theme_minimal() +
+      theme_clean_axes +
       clean_guides +
       ggplot2::labs(title = gene_to_plot)
   }
