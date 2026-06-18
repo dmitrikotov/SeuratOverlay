@@ -17,9 +17,9 @@ Key inputs and features of the function are as follows:
 
 ```R
 FeaturePlotWithOverlays(
-  seurat_obj,
-  gene_to_plot,
-  reduction_name = "umap",
+  object,
+  features,
+  reduction = "umap",
   group_column = "seurat_clusters",
   idents_to_plot = NULL,
   split.by = NULL,
@@ -34,11 +34,11 @@ FeaturePlotWithOverlays(
   neighbor_homogeneity = 0.85
 )
 
-seurat_obj: A Seurat object.
+object: A Seurat object.
 
-gene_to_plot: Gene/feature to visualize.
+features: Gene/feature to visualize.
 
-reduction_name: Dimensional reduction to use (e.g., "umap", "tsne"). Default is "umap".
+reduction: Dimensional reduction to use (e.g., "umap", "tsne"). Default is "umap".
 
 group_column: Metadata column containing cluster labels. If NULL, overlays are skipped. Default is "seurat_clusters".
 
