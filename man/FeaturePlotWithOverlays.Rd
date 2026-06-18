@@ -5,9 +5,9 @@
 \title{FeaturePlot with Cluster Overlays}
 \usage{
 FeaturePlotWithOverlays(
-  seurat_obj,
-  gene_to_plot,
-  reduction_name = "umap",
+  object,
+  features,
+  reduction = "umap",
   group_column = "seurat_clusters",
   idents_to_plot = NULL,
   split.by = NULL,
@@ -23,11 +23,11 @@ FeaturePlotWithOverlays(
 )
 }
 \arguments{
-\item{seurat_obj}{A Seurat object.}
+\item{object}{A Seurat object.}
 
-\item{gene_to_plot}{Character vector. Gene(s)/feature(s) to visualize.}
+\item{features}{Character vector. Gene(s)/feature(s) to visualize.}
 
-\item{reduction_name}{Character. Dimensional reduction to use (e.g., "umap", "tsne"). Default is "umap".}
+\item{reduction}{Character. Dimensional reduction to use (e.g., "umap", "tsne"). Default is "umap".}
 
 \item{group_column}{Character. Metadata column containing cluster labels. If NULL, overlays are skipped. Default is "seurat_clusters".}
 
@@ -67,9 +67,9 @@ overlapping boundary lines.
 library(Seurat)
 data("pbmc_small")
 FeaturePlotWithOverlays(
-  seurat_obj = pbmc_small,
-  gene_to_plot = c("CD8A", "GZMB"),
-  reduction_name = "tsne",
+  object = pbmc_small,
+  features = c("CD8A", "GZMB"),
+  reduction = "tsne",
   group_column = "groups",
   min_cells = 30
 )

@@ -5,9 +5,9 @@
 #' clusters and prunes border cells using a fast KNN homogeneity filter to prevent
 #' overlapping boundary lines.
 #'
-#' @param seurat_obj A Seurat object.
-#' @param gene_to_plot Character vector. Gene(s)/feature(s) to visualize.
-#' @param reduction_name Character. Dimensional reduction to use (e.g., "umap", "tsne"). Default is "umap".
+#' @param object A Seurat object.
+#' @param features Character vector. Gene(s)/feature(s) to visualize.
+#' @param reduction Character. Dimensional reduction to use (e.g., "umap", "tsne"). Default is "umap".
 #' @param group_column Character. Metadata column containing cluster labels. If NULL, overlays are skipped. Default is "seurat_clusters".
 #' @param idents_to_plot Character vector. Specific identities within the group_column to outline and label. If NULL, all are plotted. Default is NULL.
 #' @param split.by Character. Metadata column to split the plot by in FeaturePlot. Default is NULL.
@@ -36,16 +36,16 @@
 #' library(Seurat)
 #' data("pbmc_small")
 #' FeaturePlotWithOverlays(
-#'   seurat_obj = pbmc_small,
-#'   gene_to_plot = c("CD8A", "GZMB"),
-#'   reduction_name = "tsne",
+#'   object = pbmc_small,
+#'   features = c("CD8A", "GZMB"),
+#'   reduction = "tsne",
 #'   group_column = "groups",
 #'   min_cells = 30
 #' )
 #' }
-FeaturePlotWithOverlays <- function(seurat_obj,
-                                    gene_to_plot,
-                                    reduction_name = "umap",
+FeaturePlotWithOverlays <- function(object,
+                                    features,
+                                    reduction = "umap",
                                     group_column = "seurat_clusters",
                                     idents_to_plot = NULL,
                                     split.by = NULL,
@@ -61,13 +61,13 @@ FeaturePlotWithOverlays <- function(seurat_obj,
 
   # Check if split.by is valid if provided (independent of group_column)
   if (!is.null(split.by)) {
-    if (!split.by %in% colnames(seurat_obj@meta.data)) {
+    if (!split.by %in% colnames(object@meta.data)) {
       stop(paste("split.by column", split.by, "not found in Seurat object metadata."))
     }
   }
 
   is_split <- !is.null(split.by)
-  is_multi_gene <- length(gene_to_plot) > 1
+  is_multi_gene <- length(features) > 1
 
   # Conditionally prepare overlay layers
   if (is.null(group_column)) {
@@ -75,17 +75,17 @@ FeaturePlotWithOverlays <- function(seurat_obj,
     label_layer   <- NULL
   } else {
     # --- Step 1: Extract Coordinates and Metadata ---
-    embed_coords <- as.data.frame(Seurat::Embeddings(seurat_obj, reduction = reduction_name))
+    embed_coords <- as.data.frame(Seurat::Embeddings(object, reduction = reduction))
     if (ncol(embed_coords) < 2) {
       stop("Selected dimensional reduction must have at least 2 dimensions.")
     }
     colnames(embed_coords)[1:2] <- c("Dim_1", "Dim_2")
 
     # Add the grouping variable from metadata
-    if (!group_column %in% colnames(seurat_obj@meta.data)) {
+    if (!group_column %in% colnames(object@meta.data)) {
       stop(paste("Metadata column", group_column, "not found in Seurat object."))
     }
-    embed_coords$Cluster <- seurat_obj[[group_column]][, 1]
+    embed_coords$Cluster <- object[[group_column]][, 1]
 
     # --- Step 2: Filter for Specific Idents if requested ---
     if (!is.null(idents_to_plot)) {
@@ -162,7 +162,6 @@ FeaturePlotWithOverlays <- function(seurat_obj,
 
           if (v_len > 0) {
             u_x <- v_x / v_len
-            u_y / v_len
             u_y <- v_y / v_len
           } else {
             u_x <- 0
@@ -240,28 +239,36 @@ FeaturePlotWithOverlays <- function(seurat_obj,
 
   # --- Step 9: Generate Base FeaturePlot ---
   base_plot <- Seurat::FeaturePlot(
-    object = seurat_obj,
-    features = gene_to_plot,
-    reduction = reduction_name,
+    object = object,
+    features = features,
+    reduction = reduction,
     split.by = split.by,
     order = order
   )
 
-  # Set up a target guide setup to kill titles using only the standardized 'color' aesthetic
-  clean_guides <- ggplot2::guides(
+  # Standard guide settings to suppress legend titles for non-split plots
+  null_guides <- ggplot2::guides(
     color = ggplot2::guide_colorbar(title = NULL)
   )
 
-  # Theme modification for stripping grid lines, setting line widths, and using Helvetica with ticks
+  # Theme modification for stripping grid lines, setting line widths, and using Helvetica with ticks.
+  # Added element suppressions on right-hand Y scales to remove the secondary axis under split.by layouts.
+  # Enhanced sizes for axis titles (labels) and legend text (scale bar numbers).
+  # Gene names (features) on the scale bar legend are styled to be bold and italic.
   theme_clean_axes <- ggplot2::theme(
     text              = ggplot2::element_text(family = "Helvetica"),
     axis.text         = ggplot2::element_text(size = 12, color = "black", family = "Helvetica"),
-    axis.title        = ggplot2::element_text(family = "Helvetica"),
+    axis.text.y.right = ggplot2::element_blank(),
+    axis.ticks.y.right= ggplot2::element_blank(),
+    axis.title.y.right= ggplot2::element_blank(),
+    axis.title        = ggplot2::element_text(family = "Helvetica", size = 14),
     plot.title        = ggplot2::element_text(family = "Helvetica"),
-    legend.text       = ggplot2::element_text(family = "Helvetica"),
+    legend.text       = ggplot2::element_text(family = "Helvetica", size = 11),
+    legend.title      = ggplot2::element_text(family = "Helvetica", face = "bold.italic", size = 12), # Bold & italic for feature label
     panel.grid.major  = ggplot2::element_blank(),
     panel.grid.minor  = ggplot2::element_blank(),
     axis.line         = ggplot2::element_line(color = "black", linewidth = 0.5),
+    axis.line.y.right = ggplot2::element_blank(),
     axis.ticks        = ggplot2::element_line(color = "black", linewidth = 0.5),
     axis.ticks.length = ggplot2::unit(0.15, "cm")
   )
@@ -270,7 +277,7 @@ FeaturePlotWithOverlays <- function(seurat_obj,
   # Apply overlays conditionally based on layout type (NULL layers are safely ignored by ggplot2)
   if (inherits(base_plot, "patchwork")) {
     if (is_split) {
-      num_genes <- length(gene_to_plot)
+      num_genes <- length(features)
       num_subplots <- length(base_plot)
       num_splits <- num_subplots / num_genes
 
@@ -279,6 +286,11 @@ FeaturePlotWithOverlays <- function(seurat_obj,
       for (g in seq_len(num_genes)) {
         indices <- ((g - 1) * num_splits + 1):(g * num_splits)
 
+        # Define clean row guides displaying the specific feature/gene title in bold and italic at the top of the colorbar
+        clean_guides_g <- ggplot2::guides(
+          color = ggplot2::guide_colorbar(title = features[g], title.position = "top")
+        )
+
         # Apply overlays to the subplots of this specific gene
         for (i in indices) {
           base_plot[[i]] <- base_plot[[i]] +
@@ -286,8 +298,11 @@ FeaturePlotWithOverlays <- function(seurat_obj,
             label_layer +
             ggplot2::theme_minimal() +
             theme_clean_axes +
-            ggplot2::theme(legend.position = "right") +
-            clean_guides
+            ggplot2::theme(
+              legend.position = "right",
+              plot.title = ggplot2::element_text(face = "bold", size = 14, family = "Helvetica") # Bold for split.by titles
+            ) +
+            clean_guides_g
         }
 
         # Extract processed subplots for this gene
@@ -295,11 +310,21 @@ FeaturePlotWithOverlays <- function(seurat_obj,
 
         # Group panels, collect guides, and safely append annotation titles
         gene_row <- patchwork::wrap_plots(gene_plots_list, guides = "collect") &
-          ggplot2::theme(legend.position = "right") &
+          ggplot2::theme(
+            legend.position = "right",
+            plot.title = ggplot2::element_text(face = "bold", size = 14, family = "Helvetica") # Keep split.by titles bold
+          ) &
           theme_clean_axes &
-          clean_guides
+          clean_guides_g
 
-        gene_row_plots[[g]] <- gene_row + patchwork::plot_annotation(title = gene_to_plot[g])
+        # Row title (the feature name) is formatted as bold and italic
+        gene_row_plots[[g]] <- gene_row +
+          patchwork::plot_annotation(
+            title = features[g],
+            theme = ggplot2::theme(
+              plot.title = ggplot2::element_text(face = "bold.italic", size = 16, family = "Helvetica")
+            )
+          )
       }
 
       # Stack all clean rows vertically
@@ -313,26 +338,36 @@ FeaturePlotWithOverlays <- function(seurat_obj,
           label_layer +
           ggplot2::theme_minimal() +
           theme_clean_axes +
-          ggplot2::theme(legend.position = "right") +
-          clean_guides
+          ggplot2::theme(
+            legend.position = "right",
+            plot.title = ggplot2::element_text(face = "bold.italic", size = 14, family = "Helvetica") # Bold & italic for feature subplot titles
+          ) +
+          null_guides
       }
 
-      # Keep legends corresponding to each individual gene subplot
+      # Keep legends corresponding to each individual gene subplot with empty titles
       final_plot <- base_plot +
         patchwork::plot_layout(guides = "keep") &
-        ggplot2::theme(legend.position = "right") &
+        ggplot2::theme(
+          legend.position = "right",
+          plot.title = ggplot2::element_text(face = "bold.italic", size = 14, family = "Helvetica")
+        ) &
         theme_clean_axes &
-        clean_guides
+        null_guides
     }
   } else {
     # Standard single-panel ggplot (single gene, no split.by)
+    # The main feature title is styled as bold and italic
     final_plot <- base_plot +
       polygon_layer +
       label_layer +
       ggplot2::theme_minimal() +
       theme_clean_axes +
-      clean_guides +
-      ggplot2::labs(title = gene_to_plot)
+      ggplot2::theme(
+        plot.title = ggplot2::element_text(face = "bold.italic", size = 16, family = "Helvetica")
+      ) +
+      null_guides +
+      ggplot2::labs(title = features)
   }
 
   return(final_plot)
