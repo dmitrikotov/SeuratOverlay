@@ -1,7 +1,7 @@
 Package: SeuratOverlay
 Type: Package
 Title: Outlines and Repelled Labels for Seurat FeaturePlots
-Version: 0.1.8
+Version: 0.1.9
 Authors@R: c(
     person(
       "Dmitri", "Kotov",

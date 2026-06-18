@@ -309,7 +309,8 @@ FeaturePlotWithOverlays <- function(object,
         gene_plots_list <- lapply(indices, function(idx) base_plot[[idx]])
 
         # Group panels, collect guides, and safely append annotation titles
-        gene_row <- patchwork::wrap_plots(gene_plots_list, guides = "collect") &
+        # Explicitly setting ncol = num_splits to match the exact number of split variables
+        gene_row <- patchwork::wrap_plots(gene_plots_list, ncol = num_splits, guides = "collect") &
           ggplot2::theme(
             legend.position = "right",
             plot.title = ggplot2::element_text(face = "bold", size = 14, family = "Helvetica") # Keep split.by titles bold
