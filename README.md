@@ -31,7 +31,10 @@ FeaturePlotWithOverlays(
   line_type = "dashed",
   min_cells = 50,
   k_neighbors = 10,
-  neighbor_homogeneity = 0.85
+  neighbor_homogeneity = 0.85,
+  contour_threshold = 0.05,
+  grid_size = 100,
+  merge_threshold = 0.08
 )
 
 object: A Seurat object.
@@ -63,4 +66,10 @@ min_cells: Minimum cell count required to outline/label a cluster. Default is 50
 k_neighbors: Number of nearest neighbors to evaluate for border pruning. Default is 10.
 
 neighbor_homogeneity: Value between 0-1. Required local purity to keep a cell for boundary drawing. Default is 0.85.
+
+contour_threshold: Value between 0-1. The density threshold at which to draw the boundary lines, relative to the peak density of each cluster. Default is 0.05 (5 percent of peak density). Lower values wrap wider/looser; higher values hug tightly.
+
+grid_size: Grid size (n x n) for the 2D kernel density estimation. Default is 100. Higher values yield smoother contours.
+
+merge_threshold: Proximity threshold scaled as a fraction of the coordinate span (Dim 1 + Dim 2) below which separate segments of the same cluster are merged. Default is 0.08 (8 percent). Increase this value to merge segments that are further apart.
 ```
