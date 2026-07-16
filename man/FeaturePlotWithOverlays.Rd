@@ -19,7 +19,10 @@ FeaturePlotWithOverlays(
   line_type = "dashed",
   min_cells = 50,
   k_neighbors = 10,
-  neighbor_homogeneity = 0.85
+  neighbor_homogeneity = 0.85,
+  contour_threshold = 0.05,
+  grid_size = 100,
+  merge_threshold = 0.08
 )
 }
 \arguments{
@@ -52,6 +55,12 @@ FeaturePlotWithOverlays(
 \item{k_neighbors}{Numeric. Number of nearest neighbors to evaluate for border pruning. Default is 10.}
 
 \item{neighbor_homogeneity}{Numeric. Value between 0-1. Required local purity to keep a cell for boundary drawing. Default is 0.85.}
+
+\item{contour_threshold}{Numeric. Value between 0-1. The density threshold at which to draw the boundary lines, relative to the peak density of each cluster. Default is 0.05 (5 percent of peak density). Lower values wrap wider/looser; higher values hug tightly.}
+
+\item{grid_size}{Numeric. Grid size (n x n) for the 2D kernel density estimation. Default is 100. Higher values yield smoother contours.}
+
+\item{merge_threshold}{Numeric. Proximity threshold scaled as a fraction of the coordinate span (Dim 1 + Dim 2) below which separate segments of the same cluster are merged. Default is 0.08 (8 percent). Increase this value to merge segments that are further apart.}
 }
 \value{
 A ggplot object containing the styled FeaturePlot with overlays.
@@ -60,7 +69,8 @@ A ggplot object containing the styled FeaturePlot with overlays.
 Generates a Seurat FeaturePlot with closed-loop boundaries around
 clusters and custom repelled/static centroid labels. It filters out low-count
 clusters and prunes border cells using a fast KNN homogeneity filter to prevent
-overlapping boundary lines.
+overlapping boundary lines. Instead of a convex hull, it uses 2D kernel density
+estimation to construct concave boundary lines that tightly follow the actual cell shapes.
 }
 \examples{
 \dontrun{
