@@ -24,12 +24,16 @@
 #' @param contour_threshold Numeric. Value between 0-1. The density threshold at which to draw the boundary lines, relative to the peak density of each cluster. Default is 0.05 (5 percent of peak density). Lower values wrap wider/looser; higher values hug tightly.
 #' @param grid_size Numeric. Grid size (n x n) for the 2D kernel density estimation. Default is 100. Higher values yield smoother contours.
 #' @param merge_threshold Numeric. Proximity threshold scaled as a fraction of the coordinate span (Dim 1 + Dim 2) below which separate segments of the same cluster are merged. Default is 0.08 (8 percent). Increase this value to merge segments that are further apart.
+#' @param raster Logical. Whether to rasterize points in the Seurat FeaturePlot. Default is FALSE.
+#' @param slot Character. Expression slot to pull data from (e.g., "data", "counts"). Default is "data".
+#' @param assay Character. Specific assay to pull feature data from. Default is NULL.
+#' @param largest_boundary_only Logical. If TRUE, retains and plots only the largest boundary polygon (by enclosed area) for each cluster with identical cluster names. Default is FALSE.
 #'
 #' @importFrom Seurat Embeddings FeaturePlot
 #' @importFrom RANN nn2
 #' @importFrom ggrepel geom_label_repel
 #' @importFrom ggplot2 geom_label geom_polygon theme_minimal labs aes unit theme guides guide_colorbar element_blank element_line element_text
-#' @importFrom dplyr %>% count filter group_by mutate slice summarize ungroup group_modify
+#' @importFrom dplyr %>% count filter group_by mutate slice summarize ungroup group_modify slice_max
 #' @importFrom patchwork plot_layout plot_annotation wrap_plots
 #' @importFrom MASS kde2d
 #' @importFrom grDevices contourLines chull
@@ -67,7 +71,11 @@ FeaturePlotWithOverlays <- function(object,
                                     neighbor_homogeneity = 0.85,
                                     contour_threshold = 0.05,
                                     grid_size = 100,
-                                    merge_threshold = 0.08) {
+                                    merge_threshold = 0.08,
+                                    raster = FALSE,
+                                    slot = "data",
+                                    assay = NULL,
+                                    largest_boundary_only = FALSE) {
 
   # Check if split.by is valid if provided (independent of group_column)
   if (!is.null(split.by)) {
@@ -306,6 +314,28 @@ FeaturePlotWithOverlays <- function(object,
       hull_data <- data.frame()
     }
 
+    # Filter to only the single largest boundary piece per cluster if requested
+    if (largest_boundary_only && nrow(hull_data) > 0) {
+      poly_area <- function(x, y) {
+        n <- length(x)
+        if (n < 3) return(0)
+        0.5 * abs(sum(x[1:(n - 1)] * y[2:n] - x[2:n] * y[1:(n - 1)]))
+      }
+
+      piece_areas <- hull_data %>%
+        dplyr::group_by(Cluster, Piece) %>%
+        dplyr::summarize(
+          area = poly_area(Dim_1, Dim_2),
+          .groups = "drop"
+        ) %>%
+        dplyr::group_by(Cluster) %>%
+        dplyr::slice_max(area, n = 1, with_ties = FALSE) %>%
+        dplyr::ungroup()
+
+      hull_data <- hull_data %>%
+        dplyr::filter(Piece %in% piece_areas$Piece)
+    }
+
     # --- Step 6: Compute Robust Centroids and Target Anchors for Labels ---
     if (nrow(hull_data) == 0) {
       polygon_layer <- NULL
@@ -347,7 +377,7 @@ FeaturePlotWithOverlays <- function(object,
                 k = 1
               )
 
-              # Find the index of our boundary point that maximizing the minimum distance to other clusters (argmax)
+              # Find the index of our boundary point that maximizes the minimum distance to other clusters (argmax)
               best_idx <- which.max(nn_dist_results$nn.dists)[1]
 
               data.frame(
@@ -445,7 +475,10 @@ FeaturePlotWithOverlays <- function(object,
     features = features,
     reduction = reduction,
     split.by = split.by,
-    order = order
+    order = order,
+    raster = raster,
+    slot = slot,
+    assay = assay
   )
 
   # Standard guide settings to suppress legend titles for non-split plots

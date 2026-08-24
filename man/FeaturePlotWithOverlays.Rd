@@ -22,7 +22,11 @@ FeaturePlotWithOverlays(
   neighbor_homogeneity = 0.85,
   contour_threshold = 0.05,
   grid_size = 100,
-  merge_threshold = 0.08
+  merge_threshold = 0.08,
+  raster = FALSE,
+  slot = "data",
+  assay = NULL,
+  largest_boundary_only = FALSE
 )
 }
 \arguments{
@@ -61,6 +65,14 @@ FeaturePlotWithOverlays(
 \item{grid_size}{Numeric. Grid size (n x n) for the 2D kernel density estimation. Default is 100. Higher values yield smoother contours.}
 
 \item{merge_threshold}{Numeric. Proximity threshold scaled as a fraction of the coordinate span (Dim 1 + Dim 2) below which separate segments of the same cluster are merged. Default is 0.08 (8 percent). Increase this value to merge segments that are further apart.}
+
+\item{raster}{Logical. Whether to rasterize points in the Seurat FeaturePlot. Default is FALSE.}
+
+\item{slot}{Character. Expression slot to pull data from (e.g., "data", "counts"). Default is "data".}
+
+\item{assay}{Character. Specific assay to pull feature data from. Default is NULL.}
+
+\item{largest_boundary_only}{Logical. If TRUE, retains and plots only the largest boundary polygon (by enclosed area) for each cluster with identical cluster names. Default is FALSE.}
 }
 \value{
 A ggplot object containing the styled FeaturePlot with overlays.
