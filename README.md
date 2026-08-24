@@ -2,7 +2,7 @@
 R package to overlay cluster metadata on top of the Seurat FeaturePlot function
 
 # Installing SeuratOverlay
-To install SeuratOverlay and the required depndencies from github run the following code:
+To install SeuratOverlay and the required dependencies from Github run the following code:
 
 ```R
 if(!requireNamespace("devtools", quietly = TRUE)) {
@@ -34,7 +34,11 @@ FeaturePlotWithOverlays(
   neighbor_homogeneity = 0.85,
   contour_threshold = 0.05,
   grid_size = 100,
-  merge_threshold = 0.08
+  merge_threshold = 0.08,
+  raster = FALSE,
+  slot = "data",
+  assay = NULL,
+  largest_boundary_only = FALSE
 )
 
 object: A Seurat object.
@@ -72,4 +76,12 @@ contour_threshold: Value between 0-1. The density threshold at which to draw the
 grid_size: Grid size (n x n) for the 2D kernel density estimation. Default is 100. Higher values yield smoother contours.
 
 merge_threshold: Proximity threshold scaled as a fraction of the coordinate span (Dim 1 + Dim 2) below which separate segments of the same cluster are merged. Default is 0.08 (8 percent). Increase this value to merge segments that are further apart.
+
+raster: Whether to rasterize points in the Seurat FeaturePlot. Default is FALSE.
+
+slot: Expression slot to pull data from (e.g., "data", "counts"). Default is "data".
+
+assay: Specific assay to pull feature data from. Default is NULL.
+
+largest_boundary_only: If TRUE, retains and plots only the largest boundary polygon (by enclosed area) for each cluster with identical cluster names. Default is FALSE.
 ```
